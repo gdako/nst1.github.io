@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; }
+        .stock-card { border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <input type="text" id="symbolInput" placeholder="Enter stock symbol">
+    <button onclick="addStock()">Add Stock</button>
+    <div id="stockContainer"></div>
+
+    <script>
+        const stocks = new Set();
+        
+        async function fetchStockData(symbol) {
+            const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+            const apiKey = 'YOUR_ALPHA_VANTAGE_API_KEY';
+            try {
+                const response = await fetch(`${corsProxy}https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`);
+                const data = await response.json();
+                return data['Global Quote'];
+            } catch (error) {
+                console.error('Error:', error);
+                return null;
+            }
+        }
+
+        function createStockCard(symbol, data) {
+            if (!data) return `<div class="stock-card">${symbol}: Error loading data</div>`;
+            
+            const price = parseFloat(data['05. price']);
+            const change = parseFloat(data['09. change']);
+            
+            return `
+                <div class="stock-card">
+                    <strong>${symbol}</strong>: 
+                    $${price.toFixed(2)} 
+                    (${change >= 0 ? '+' : ''}${change.toFixed(2)})
+                </div>
+            `;
+        }
+
+        async function updateStocks() {
+            const container = document.getElementById('stockContainer');
+            container.innerHTML = '';
+            for (const symbol of stocks) {
+                const data = await fetchStockData(symbol);
+                container.innerHTML += createStockCard(symbol, data);
+            }
+        }
+
+        function addStock() {
+            const symbol = document.getElementById('symbolInput').value.toUpperCase();
+            if (symbol && !stocks.has(symbol)) {
+                stocks.add(symbol);
+                updateStocks();
+                document.getElementById('symbolInput').value = '';
+            }
+        }
+
+        setInterval(updateStocks, 60000);
+    </script>
+</body>
+</html>
